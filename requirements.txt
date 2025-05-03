@@ -2,3 +2,6 @@ gradio
 joblib
 numpy
 xgboost
+prometheus-client
+fastapi
+uvicorn

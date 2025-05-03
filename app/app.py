@@ -1,11 +1,23 @@
 import gradio as gr
 import joblib
 import numpy as np
+from fastapi import FastAPI
+from fastapi.responses import Response
+
+import uvicorn
+
+from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
+
+# Prometheus metrics setup
+REQUEST_COUNT = Counter("app_request_count", "Total number of Gradio requests", ["endpoint"])
+
 
 # Load the trained model
 trained_model = joblib.load('xgboost-model_v1_opt.pkl')
 
 def predict_death(age, anaemia, creatinine_phosphokinase, diabetes, ejection_fraction, high_blood_pressure, platelets, serum_creatinine, serum_sodium, sex, smoking, time):
+
+    REQUEST_COUNT.labels(endpoint="/predict").inc()
 
     # Prepare the input data for the model
     input_data = np.array([[age, anaemia, creatinine_phosphokinase, diabetes, ejection_fraction, high_blood_pressure, platelets, serum_creatinine, serum_sodium, sex, smoking, time]])
@@ -48,5 +60,17 @@ iface = gr.Interface(fn=predict_death,
                      description=description,
                      allow_flagging='never')
 
-iface.launch(server_name="0.0.0.0", server_port=7860)
+app = FastAPI()
+# iface.launch(server_name="0.0.0.0", server_port=7860)
+
+app = gr.mount_gradio_app(app, iface, path='/predict')
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+# Run the app
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=7860)
+
 
