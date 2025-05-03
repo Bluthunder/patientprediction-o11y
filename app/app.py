@@ -17,6 +17,8 @@ trained_model = joblib.load('xgboost-model_v1_opt.pkl')
 
 def predict_death(age, anaemia, creatinine_phosphokinase, diabetes, ejection_fraction, high_blood_pressure, platelets, serum_creatinine, serum_sodium, sex, smoking, time):
 
+    REQUEST_COUNT.labels(endpoint="/predict").inc()
+
     # Prepare the input data for the model
     input_data = np.array([[age, anaemia, creatinine_phosphokinase, diabetes, ejection_fraction, high_blood_pressure, platelets, serum_creatinine, serum_sodium, sex, smoking, time]])
 
@@ -61,12 +63,13 @@ iface = gr.Interface(fn=predict_death,
 app = FastAPI()
 # iface.launch(server_name="0.0.0.0", server_port=7860)
 
-@app.get('/metrics')
+app = gr.mount_gradio_app(app, iface, path='/predict')
+
+@app.get("/metrics")
 def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-app = gr.mount_gradio_app(app, iface, path='/')
-
+# Run the app
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=7860)
 

@@ -1,11 +1,16 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
+      dockerfile: Dockerfile
     ports:
       - "7860:7860"
+    working_dir: /app/app
+    volumes:
+      - ./app:/app/app
+
+    networks:
+      - monitoring
 
   prometheus:
     image: prom/prometheus
@@ -14,7 +19,17 @@ services:
     ports:
       - "9090:9090"
 
+    networks:
+      - monitoring
+
   grafana:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    networks:
+      - monitoring
+
+
+networks:
+  monitoring:
+    driver: bridge
